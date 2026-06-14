@@ -9,8 +9,9 @@ account, analytics, or API connection.
 2. Choose or create `FairwayLog-Sync.json` in iCloud Drive.
 3. On the phone, import that file before entering data.
 4. Log a round, putting set, or launch-session summary.
-5. Press **Share sync file**, choose **Save to Files**, and replace the file in
-   iCloud Drive.
+5. Press **Share sync file**, choose **Save to Files**, and save it in the same
+   iCloud Drive folder. Numbered copies are okay; the Mac automatically reads
+   the newest file whose name begins with `FairwayLog-Sync`.
 6. On the Mac, press **Sync Now**. The Mac also checks when it becomes active.
 
 Sync is additive. New record IDs merge safely. Editing or deleting a record that

@@ -204,7 +204,7 @@ async function shareSyncFile() {
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: "Fairway Log Sync" });
-      toast("Choose Save to Files");
+      toast("Save in the same iCloud folder; numbered copies are okay");
       return;
     } catch (error) {
       if (error.name === "AbortError") return;
