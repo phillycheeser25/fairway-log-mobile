@@ -1,41 +1,53 @@
-# Fairway Log Mobile
+# Fairway Log — Caddie
 
-This is a static, offline-capable companion for the Mac app. It has no server,
-account, analytics, or API connection.
+A static, offline **read-only** companion for the Fairway Log Mac app. No server,
+account, analytics, or API. Your Mac is the source of truth; this app just reads
+`FairwayLog-Sync.json` so your numbers ride along in your pocket.
 
-## Daily sync workflow
+You enter and edit data through the Mac app's desktop imports. This viewer never
+writes back — there is no export.
 
-1. On the Mac, open **Data Center → Free Mobile Sync**.
-2. Choose or create `FairwayLog-Sync.json` in iCloud Drive.
-3. On the phone, import that file before entering data.
-4. Log a round, putting set, or launch-session summary.
-5. Press **Share sync file**, choose **Save to Files**, and save it in the same
-   iCloud Drive folder. Numbered copies are okay; the Mac automatically reads
-   the newest file whose name begins with `FairwayLog-Sync`.
-6. On the Mac, press **Sync Now**. The Mac also checks when it becomes active.
+## What it shows
 
-Sync is additive. New record IDs merge safely. Editing or deleting a record that
-already exists on the other device does not propagate in this version.
+- **Home** — a Today's Playbook cheat sheet (makeable putt range, go-to clubs,
+  approach bias, scoring by par type), a "Work on this" weakness spotlight, and
+  personal bests.
+- **Bag** — a yardage book: carry/total by club with gaps flagged, plus an
+  approach distance-control section with a dispersion plot and in-circle rates.
+- **Greens** — practice make-rate ladder by distance (with 3-putt rates on the
+  longer bands) and on-course putting.
+- **Rounds** — scoring average, best, putts, fairways, greens, scrambling, a
+  scoring trend sparkline, average-to-par by hole type, and recent scorecards.
+- **Sync** — load the latest sync file.
 
-## Install on an iPhone
+All figures are derived to match the Mac dashboards (mishit-filtered launch
+averages, the same approach "circle" execution model, and identical putting /
+approach distance bands).
 
-The folder must be served over HTTPS for normal Home Screen installation and
-offline caching. It can be hosted free as a static site using GitHub Pages,
-Cloudflare Pages, or Netlify. The host receives only these application files;
-golf data remains in the browser and in files you explicitly import or share.
+## Daily use
 
-After opening the HTTPS site in Safari:
+1. On the Mac, do your normal desktop import after a session.
+2. Make sure the updated `FairwayLog-Sync.json` is in your iCloud Drive folder.
+3. On the phone, open the app, go to **Sync**, and load that file. The view
+   refreshes. (Loading replaces this device's cached copy.)
 
-1. Tap **Share**.
-2. Tap **Add to Home Screen**.
-3. Open Fairway Log from the new icon.
+Numbered iPhone copies (`FairwayLog-Sync 2.json`) are fine — just pick the newest
+one when loading.
+
+## Install on iPhone
+
+Served over HTTPS (GitHub Pages / Cloudflare Pages / Netlify). In Safari: **Share
+→ Add to Home Screen**. The host only ever receives these static files; your golf
+data stays in the browser and in files you explicitly load.
 
 ## Local preview
-
-From the project root:
 
 ```sh
 ./scripts/serve_mobile.sh
 ```
-
 Then open `http://localhost:8080`.
+
+## Files
+
+`index.html`, `styles.css`, `app.js`, `service-worker.js` (cache
+`fairway-log-caddie-v3`), `manifest.webmanifest`, `icon-192.png`, `icon-512.png`.

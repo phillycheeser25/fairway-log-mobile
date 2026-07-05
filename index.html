@@ -3,187 +3,143 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#06372c">
+  <meta name="theme-color" content="#060d0a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fairway Log">
-  <title>Fairway Log Mobile</title>
+  <title>Fairway Log — Caddie</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="glow" aria-hidden="true"></div>
+
   <header class="app-header">
-    <div>
+    <div class="brand">
       <p class="eyebrow">POSTCALLGOLF</p>
       <h1>Fairway Log</h1>
-      <p class="subtitle">Mobile entry and manual iCloud sync.</p>
     </div>
-    <div class="sync-dot" id="syncDot" title="Local data saved"></div>
+    <button class="hcp-chip" id="hcpChip" data-view="syncView" title="Sync status">
+      <span class="hcp-num" id="hcpNum">—</span>
+      <span class="hcp-lbl">INDEX</span>
+    </button>
   </header>
 
-  <main>
+  <main id="main">
+    <!-- HOME -->
     <section class="view active" id="homeView">
-      <div class="hero-card">
-        <div>
-          <p class="eyebrow">LOCAL COPY</p>
-          <h2 id="recordTotal">0 records</h2>
-          <p id="lastImport">Import the desktop sync file before logging.</p>
-        </div>
-        <button class="primary" data-view="syncView">Sync file</button>
+      <div id="emptyState" class="empty-hero" hidden>
+        <div class="empty-ring">▲</div>
+        <h2>No data yet</h2>
+        <p>Import your <code>FairwayLog-Sync.json</code> to load your bag, greens, and rounds.</p>
+        <button class="primary" data-view="syncView">Open sync</button>
       </div>
 
-      <div class="metric-grid">
-        <article class="metric"><span>Rounds</span><strong id="roundCount">0</strong></article>
-        <article class="metric"><span>Putting</span><strong id="puttingCount">0</strong></article>
-        <article class="metric"><span>Launch</span><strong id="launchCount">0</strong></article>
-      </div>
-
-      <section class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">QUICK ENTRY</p>
-            <h2>Log something</h2>
+      <div id="homeContent" hidden>
+        <section class="panel plan" id="planCard">
+          <div class="panel-head">
+            <p class="eyebrow">TODAY'S PLAYBOOK</p>
+            <span class="freshness" id="freshness"></span>
           </div>
-        </div>
-        <div class="action-grid">
-          <button class="action-card" data-view="roundView">
-            <span class="action-icon">18</span>
-            <strong>Round</strong>
-            <small>Hole-by-hole stats</small>
-          </button>
-          <button class="action-card" data-view="puttingView">
-            <span class="action-icon">●</span>
-            <strong>Putting</strong>
-            <small>Distance and makes</small>
-          </button>
-          <button class="action-card" data-view="launchView">
-            <span class="action-icon">↗</span>
-            <strong>Launch</strong>
-            <small>Session summary</small>
-          </button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">RECENT</p>
-            <h2>Latest entries</h2>
-          </div>
-        </div>
-        <div id="recentEntries" class="recent-list"></div>
-      </section>
-    </section>
-
-    <section class="view" id="roundView">
-      <div class="view-title">
-        <button class="back" data-view="homeView">‹</button>
-        <div><p class="eyebrow">OUTDOOR</p><h2>New round</h2></div>
-      </div>
-
-      <form id="roundForm">
-        <section class="panel form-grid">
-          <label>Date<input id="roundDate" type="date" required></label>
-          <label>Course<input id="roundCourse" type="text" placeholder="Course name" required></label>
-          <label>Tees<input id="roundTees" type="text" placeholder="White"></label>
-          <label>Total score<input id="roundScore" type="number" inputmode="numeric" placeholder="Calculated if blank"></label>
-          <label class="full">Notes<textarea id="roundNotes" rows="2" placeholder="Optional"></textarea></label>
+          <div id="planBody" class="plan-body"></div>
         </section>
 
-        <div class="section-heading hole-heading">
-          <div><p class="eyebrow">SCORECARD</p><h2>Hole details</h2></div>
-          <button type="button" class="quiet" id="clearHoles">Clear</button>
+        <section class="panel spotlight" id="spotlightCard">
+          <div class="panel-head">
+            <p class="eyebrow">WORK ON THIS</p>
+          </div>
+          <div id="spotlightBody" class="spotlight-body"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <p class="eyebrow">PERSONAL BESTS</p>
+          </div>
+          <div id="recordsBody" class="records-grid"></div>
+        </section>
+
+        <div class="jump-grid">
+          <button class="jump" data-view="bagView"><span>▚</span><strong>The Bag</strong><small>Yardages &amp; approach</small></button>
+          <button class="jump" data-view="greensView"><span>◎</span><strong>Greens</strong><small>Putting ladder</small></button>
+          <button class="jump" data-view="roundsView"><span>⑱</span><strong>Rounds</strong><small>Trends &amp; cards</small></button>
+          <button class="jump" data-view="syncView"><span>↻</span><strong>Sync</strong><small>Load latest</small></button>
         </div>
-        <div id="holeEditor" class="hole-list"></div>
-        <button type="submit" class="primary sticky-save">Save round locally</button>
-      </form>
+      </div>
     </section>
 
-    <section class="view" id="puttingView">
+    <!-- BAG -->
+    <section class="view" id="bagView">
       <div class="view-title">
         <button class="back" data-view="homeView">‹</button>
-        <div><p class="eyebrow">PRACTICE</p><h2>Putting set</h2></div>
+        <div><p class="eyebrow">THE BAG</p><h2>Yardage book</h2></div>
       </div>
-      <form id="puttingForm" class="panel form-grid">
-        <label>Date<input id="puttingDate" type="date" required></label>
-        <label>Surface<input id="puttingSurface" type="text" value="Mat"></label>
-        <label>Distance (ft)<input id="puttingDistance" type="number" inputmode="numeric" value="7" min="1" required></label>
-        <label>Set number<input id="puttingSetNumber" type="number" inputmode="numeric" value="1" min="1"></label>
-        <label>Made<input id="puttingMade" type="number" inputmode="numeric" value="0" min="0" required></label>
-        <label>Attempts<input id="puttingAttempts" type="number" inputmode="numeric" value="10" min="1" required></label>
-        <label>Three-putts<input id="puttingThreePutts" type="number" inputmode="numeric" value="0" min="0"></label>
-        <label class="full">Notes<textarea id="puttingNotes" rows="3"></textarea></label>
-        <button type="submit" class="primary full">Save putting set locally</button>
-      </form>
+      <div id="bagEmpty" class="soft-empty" hidden>No launch or distance data yet.</div>
+      <div id="gappingBody"></div>
+
+      <div class="view-subtitle" id="approachHead" hidden>
+        <p class="eyebrow">APPROACH</p><h2>Distance control</h2>
+      </div>
+      <div id="approachBody"></div>
     </section>
 
-    <section class="view" id="launchView">
+    <!-- GREENS -->
+    <section class="view" id="greensView">
       <div class="view-title">
         <button class="back" data-view="homeView">‹</button>
-        <div><p class="eyebrow">PRACTICE</p><h2>Launch session</h2></div>
+        <div><p class="eyebrow">GREENS</p><h2>Putting ladder</h2></div>
       </div>
-      <form id="launchForm" class="panel form-grid">
-        <label>Date<input id="launchDate" type="date" required></label>
-        <label>Club<input id="launchClub" type="text" placeholder="7 Iron" required></label>
-        <label>Category
-          <select id="launchCategory">
-            <option>Iron</option><option>Approach</option><option>Drive</option>
-          </select>
-        </label>
-        <label>Session type<input id="launchType" type="text" placeholder="Stock shots"></label>
-        <label>Target<input id="launchTarget" type="text" placeholder="175 yd"></label>
-        <label>Surface<input id="launchSurface" type="text" value="Mat"></label>
-        <label>Shots<input id="launchShots" type="number" inputmode="numeric" value="10" min="0"></label>
-        <label class="full">Notes<textarea id="launchNotes" rows="3"></textarea></label>
-        <button type="submit" class="primary full">Save session locally</button>
-      </form>
+      <div id="greensEmpty" class="soft-empty" hidden>No putting data yet.</div>
+      <div id="puttingBody"></div>
+      <div id="roundPuttingBody"></div>
     </section>
 
+    <!-- ROUNDS -->
+    <section class="view" id="roundsView">
+      <div class="view-title">
+        <button class="back" data-view="homeView">‹</button>
+        <div><p class="eyebrow">SCORING</p><h2>Rounds</h2></div>
+      </div>
+      <div id="roundsEmpty" class="soft-empty" hidden>No rounds logged yet.</div>
+      <div id="roundsSummary"></div>
+      <div id="roundsList"></div>
+    </section>
+
+    <!-- SYNC -->
     <section class="view" id="syncView">
       <div class="view-title">
         <button class="back" data-view="homeView">‹</button>
-        <div><p class="eyebrow">ICLOUD DRIVE</p><h2>Sync file</h2></div>
+        <div><p class="eyebrow">ICLOUD DRIVE</p><h2>Sync</h2></div>
       </div>
 
       <section class="panel">
-        <p class="step">1</p>
-        <h3>Import before logging</h3>
-        <p>Select the latest <code>FairwayLog-Sync.json</code> from iCloud Drive. New IDs are merged into this phone’s local copy.</p>
+        <h3>Read-only viewer</h3>
+        <p class="muted">Your Mac is the source of truth. This app just reads the sync file so your numbers ride along in your pocket — nothing is entered or sent anywhere.</p>
         <label class="file-button">
-          Choose sync file
+          Load FairwayLog-Sync.json
           <input id="syncFileInput" type="file" accept=".json,application/json">
         </label>
+        <p class="import-status" id="importStatus">No file loaded on this device yet.</p>
       </section>
 
-      <section class="panel">
-        <p class="step">2</p>
-        <h3>Log rounds or practice</h3>
-        <p>Entries save offline in this browser. Nothing is sent to a server.</p>
-      </section>
-
-      <section class="panel">
-        <p class="step">3</p>
-        <h3>Share after logging</h3>
-        <p>Save the combined JSON into the same iCloud Drive folder, then press Sync Now on the Mac. If iPhone creates a numbered copy instead of replacing the file, that is okay—the Mac uses the newest copy automatically.</p>
-        <div class="button-stack">
-          <button class="primary" id="shareSyncFile">Share sync file</button>
-          <button id="downloadSyncFile">Download sync file</button>
-        </div>
+      <section class="panel counts" id="countsPanel" hidden>
+        <div class="panel-head"><p class="eyebrow">LOADED</p></div>
+        <div id="countsBody" class="counts-grid"></div>
       </section>
 
       <section class="panel warning">
-        <h3>Additive sync</h3>
-        <p>New records sync safely. Editing or deleting an entry that already exists on the other device does not propagate yet.</p>
-        <button class="danger" id="clearLocalData">Clear phone’s local copy</button>
+        <h3>Refreshing</h3>
+        <p class="muted">After a desktop import, re-open the latest <code>FairwayLog-Sync.json</code> here to refresh. Loading a file replaces this device's cached copy.</p>
+        <button class="danger" id="clearLocalData">Clear cached copy</button>
       </section>
     </section>
   </main>
 
   <nav class="tab-bar">
     <button class="active" data-view="homeView"><span>⌂</span>Home</button>
-    <button data-view="roundView"><span>＋</span>Round</button>
-    <button data-view="puttingView"><span>●</span>Putting</button>
+    <button data-view="bagView"><span>▚</span>Bag</button>
+    <button data-view="greensView"><span>◎</span>Greens</button>
+    <button data-view="roundsView"><span>⑱</span>Rounds</button>
     <button data-view="syncView"><span>↻</span>Sync</button>
   </nav>
 

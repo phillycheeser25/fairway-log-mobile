@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c1b15"/>
+      <stop offset="1" stop-color="#05100b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="34%" r="52%">
+      <stop offset="0" stop-color="#46e39b" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#46e39b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5cf0ab"/>
+      <stop offset="1" stop-color="#22b374"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f5e45"/>
+      <stop offset="1" stop-color="#123a2b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="512" height="512" rx="114" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="114" fill="url(#glow)"/>
+  <rect x="1" y="1" width="510" height="510" rx="113" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- the green (putting surface), tilted ellipse -->
+  <ellipse cx="256" cy="366" rx="150" ry="52" fill="url(#green)" stroke="#46e39b" stroke-opacity="0.28" stroke-width="2"/>
+
+  <!-- putt line: dashed arc from ball to hole -->
+  <path d="M330 372 Q300 356 256 360" fill="none" stroke="#46e39b" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 12"/>
+
+  <!-- hole -->
+  <ellipse cx="256" cy="360" rx="20" ry="8" fill="#04120c" stroke="#46e39b" stroke-opacity="0.5" stroke-width="2"/>
+
+  <!-- ball -->
+  <circle cx="336" cy="372" r="12" fill="#eafff5"/>
+  <circle cx="336" cy="372" r="12" fill="none" stroke="#0b1f17" stroke-opacity="0.15" stroke-width="1"/>
+
+  <!-- flagstick -->
+  <rect x="250" y="132" width="11" height="230" rx="5.5" fill="#dff5ea"/>
+  <!-- pennant -->
+  <path d="M261 138 L360 168 L261 198 Z" fill="url(#flag)"/>
+  <!-- stick highlight cap -->
+  <circle cx="255.5" cy="134" r="8" fill="#dff5ea"/>
+</svg>
