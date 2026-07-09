@@ -290,6 +290,7 @@ code {
 
 /* ---------- Chips (Stewart + dispersion filter) ---------- */
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.chip-row[hidden] { display: none; }
 .chip-row.sub { margin: 8px 0 2px; }
 .chip-row.wrap { margin-bottom: 14px; }
 .chip {
