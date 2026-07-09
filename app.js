@@ -153,13 +153,30 @@ function bagLadder() {
     rows.push({ club, category: inferCategory(club), carry, total: null, count: null, mishitPct: null, offlineSigned: null, offlineAbs: null, source: b.source || "Grint" });
   }
 
-  rows.sort((a, b) => (b.carry ?? 0) - (a.carry ?? 0));
-  // gap to the next (shorter) club
-  for (let i = 0; i < rows.length; i++) {
-    const next = rows[i + 1];
-    rows[i].gap = next && rows[i].carry != null && next.carry != null ? rows[i].carry - next.carry : null;
-  }
+  rows.sort((a, b) => {
+    const d = bagOrderRank(a.club) - bagOrderRank(b.club);
+    return d !== 0 ? d : (b.carry ?? 0) - (a.carry ?? 0);
+  });
   return rows;
+}
+
+/* canonical bag order: driver → woods → hybrids → irons → wedges */
+function bagOrderRank(club) {
+  const v = (club || "").toLowerCase().trim();
+  let m;
+  if (v.includes("driver")) return 0;
+  if ((m = v.match(/(\d+)\s*wood/))) return 10 + +m[1];
+  if (v.includes("wood")) return 15;
+  if ((m = v.match(/(\d+)\s*hybrid/))) return 30 + +m[1];
+  if (v.includes("hybrid")) return 34;
+  if ((m = v.match(/(\d+)\s*iron/))) return 40 + +m[1];
+  if (v.includes("pitching")) return 60;
+  if (v.includes("gap")) return 62;
+  if (v.includes("sand")) return 72;
+  if (v.includes("lob")) return 76;
+  if ((m = v.match(/(\d+)\s*(?:°|deg)/))) return 60 + (+m[1] - 44);
+  if (v.includes("wedge")) return 65;
+  return 100;
 }
 
 /* ---------------- approach ---------------- */
@@ -187,22 +204,7 @@ function circleRadius(target, hcp) {
   return base * adj;
 }
 
-function approachModel() {
-  const hcp = num(db.golfer.handicapIndex) ?? 13.5;
-  const shots = [];
-  for (const s of db.launchSessions) {
-    if (inferCategory(s.club) !== "Approach" && s.category !== "Approach") continue;
-    const target = targetDistance(s.target);
-    if (target == null) continue;
-    for (const shot of (Array.isArray(s.shots) ? s.shots : [])) {
-      if (shot.carryDistance == null) continue;
-      const lateral = shot.offlineDistance ?? 0;
-      const carryDelta = shot.carryDistance - target;
-      const miss = Math.hypot(carryDelta, lateral);
-      const radius = circleRadius(target, hcp);
-      shots.push({ band: approachBandOf(target), target, lateral, carryDelta, miss, radius, success: miss <= radius });
-    }
-  }
+function summarizeApproach(shots) {
   const bands = APPROACH_BANDS.map(b => {
     const g = shots.filter(x => x.band === b.label);
     return {
@@ -218,6 +220,26 @@ function approachModel() {
     avgCircle: avg(shots.map(x => x.radius)),
     execRate: shots.length ? shots.filter(x => x.success).length / shots.length : null
   };
+}
+
+function approachModel() {
+  const hcp = num(db.golfer.handicapIndex) ?? 13.5;
+  const shots = [];
+  for (const s of db.launchSessions) {
+    if (inferCategory(s.club) !== "Approach" && s.category !== "Approach") continue;
+    const target = targetDistance(s.target);
+    if (target == null) continue;
+    const club = (s.club || "").trim();
+    for (const shot of (Array.isArray(s.shots) ? s.shots : [])) {
+      if (shot.carryDistance == null) continue;
+      const lateral = shot.offlineDistance ?? 0;
+      const carryDelta = shot.carryDistance - target;
+      const miss = Math.hypot(carryDelta, lateral);
+      const radius = circleRadius(target, hcp);
+      shots.push({ club, band: approachBandOf(target), target, lateral, carryDelta, miss, radius, success: miss <= radius });
+    }
+  }
+  return summarizeApproach(shots);
 }
 
 function dirLR(v) { if (v == null) return ""; return v < 0 ? "Left" : v > 0 ? "Right" : "Center"; }
@@ -323,11 +345,14 @@ function spotlight(ladder, appr, rs) {
 
 function gamePlan(ladder, bag, appr, rs) {
   const rows = [];
+
+  // lead with the money yardage: best-executing approach band = the layup number
+  const money = appr.bands.filter(b => b.attempts >= 5).slice().sort((a, b) => (b.execRate ?? 0) - (a.execRate ?? 0))[0];
+  if (money && money.execRate != null)
+    rows.push(["Money range", `Lay up to <span class="em">${money.label}</span>`, `${pct(money.execRate)} inside the circle from there — pick your number, not just "closer".`]);
+
   const mk = makeableRange(ladder);
   if (mk) rows.push(["Makeable", `Confident through <span class="em">${mk.label.replace(" ft", " ft")}</span>`, `${pct(mk.makeRate)} make rate — be aggressive inside this.`]);
-
-  const goTo = bag.filter(r => r.count && r.count >= 5 && r.carry != null).sort((a, b) => (a.offlineAbs ?? 99) - (b.offlineAbs ?? 99)).slice(0, 3);
-  if (goTo.length) rows.push(["Go-to clubs", goTo.map(r => `<span class="em">${escapeHTML(r.club)}</span> ${Math.round(r.carry)}`).join(" · "), "Your tightest, most repeatable carries."]);
 
   if (appr.shots.length >= 6 && (appr.signedCarry != null || appr.signedOffline != null)) {
     const parts = [];
@@ -403,23 +428,21 @@ function renderRecords(recs) {
     || `<p class="muted">No records yet.</p>`;
 }
 
+let apprClubFilter = "All";
+
 function renderBag(bag, appr) {
   document.getElementById("bagEmpty").hidden = bag.length > 0;
   const el = document.getElementById("gappingBody");
   if (bag.length) {
     el.innerHTML = `
-      <p class="section-label">Carry &amp; total by club</p>
+      <p class="section-label">Carry &amp; total by club · bag order</p>
       <div class="ladder">
-        <div class="ladder-row head"><span>Club</span><span>Carry</span><span>Total</span><span>Gap</span></div>
-        ${bag.map(r => {
-          const gapWarn = r.gap != null && r.gap >= 20 ? "warn" : "";
-          return `<div class="ladder-row">
+        <div class="ladder-row head" style="grid-template-columns:1.4fr 1fr 1fr"><span>Club</span><span>Carry</span><span>Total</span></div>
+        ${bag.map(r => `<div class="ladder-row" style="grid-template-columns:1.4fr 1fr 1fr">
             <div><span class="club-name">${escapeHTML(r.club)}</span><span class="club-src">${r.count ? r.count + " shots · " + r.source : r.source}</span></div>
             <div class="yd">${r.carry != null ? Math.round(r.carry) : "—"}<small> yd</small></div>
             <div class="yd">${r.total != null ? Math.round(r.total) : "<span style='color:var(--muted-2)'>—</span>"}</div>
-            <div class="gap-pill ${gapWarn}">${r.gap != null ? Math.round(r.gap) : ""}</div>
-          </div>`;
-        }).join("")}
+          </div>`).join("")}
       </div>`;
   } else el.innerHTML = "";
 
@@ -427,13 +450,22 @@ function renderBag(bag, appr) {
   const body = document.getElementById("approachBody");
   if (appr.shots.length) {
     head.hidden = false;
+    // club filter chips (by shot count, desc)
+    const counts = new Map();
+    for (const s of appr.shots) if (s.club) counts.set(s.club, (counts.get(s.club) || 0) + 1);
+    const clubs = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+    if (apprClubFilter !== "All" && !counts.has(apprClubFilter)) apprClubFilter = "All";
+    const filtered = apprClubFilter === "All" ? appr : summarizeApproach(appr.shots.filter(s => s.club === apprClubFilter));
+    const chips = ["All", ...clubs].map(c =>
+      `<button class="chip small ${c === apprClubFilter ? "active" : ""}" data-apprclub="${escapeHTML(c)}">${escapeHTML(c)}${c === "All" ? "" : ` <small>${counts.get(c)}</small>`}</button>`).join("");
     body.innerHTML = `
       <div class="panel">
-        ${dispersionSVG(appr)}
+        <div class="chip-row wrap" id="apprClubChips">${chips}</div>
+        ${dispersionSVG(filtered)}
       </div>
       <div class="ladder">
         <div class="ladder-row head" style="grid-template-columns:1.4fr 1fr 1fr"><span>Distance</span><span>In circle</span><span>Avg miss</span></div>
-        ${appr.bands.map(b => `<div class="ladder-row" style="grid-template-columns:1.4fr 1fr 1fr">
+        ${filtered.bands.map(b => `<div class="ladder-row" style="grid-template-columns:1.4fr 1fr 1fr">
           <div class="club-name">${b.label}</div>
           <div class="yd">${pct(b.execRate)}<small> ${b.attempts}</small></div>
           <div class="yd">${b.avgMiss != null ? r1(b.avgMiss) : "—"}<small> yd</small></div>
@@ -577,6 +609,108 @@ function renderCounts() {
   document.getElementById("countsBody").innerHTML = cells.map(([l, v]) => `<div class="count-cell"><b>${v}</b><span>${l}</span></div>`).join("");
 }
 
+/* ---------------- Stewart (caddie · beta) ---------------- */
+
+/* plays-like adjustments: wind as % of the shot, elevation in yards */
+const WIND_PCT = {
+  into:  { light: 0.05, medium: 0.10, strong: 0.20 },
+  down:  { light: -0.04, medium: -0.07, strong: -0.12 },
+  cross: { light: 0.02, medium: 0.04, strong: 0.06 } // cross still knocks a little off carry; hold your line
+};
+const ELEV_YDS = {
+  up:   { slight: 4, moderate: 8, big: 14 },
+  down: { slight: -4, moderate: -8, big: -14 }
+};
+
+const stew = { wind: "none", windStr: "light", elev: "flat", elevAmt: "slight" };
+
+function stewartClubs() {
+  return bagLadder().filter(r => r.carry != null).sort((a, b) => a.carry - b.carry);
+}
+
+function stewartCall(yards) {
+  const clubs = stewartClubs();
+  if (!clubs.length) return { line: "Can't club you without your carries, boss — load the sync file first.", detail: "" };
+
+  const windAdj = stew.wind !== "none" ? Math.round(yards * WIND_PCT[stew.wind][stew.windStr]) : 0;
+  const elevAdj = stew.elev !== "flat" ? ELEV_YDS[stew.elev][stew.elevAmt] : 0;
+  const plays = Math.round(yards + windAdj + elevAdj);
+
+  const parts = [`${yards} to the pin`];
+  if (windAdj) parts.push(`${windAdj > 0 ? "+" : ""}${windAdj} wind`);
+  if (elevAdj) parts.push(`${elevAdj > 0 ? "+" : ""}${elevAdj} slope`);
+  const detail = parts.join(" · ") + ` → plays ${plays}`;
+
+  const longest = clubs[clubs.length - 1];
+  const shortest = clubs[0];
+  if (plays > longest.carry + 8)
+    return { line: `That's playing ${plays} — all of it. ${longest.club} and commit.`, detail: `${detail}. ${longest.club} carries ${Math.round(longest.carry)}.` };
+  if (plays < shortest.carry - 12)
+    return { line: `That's playing ${plays} — inside your shortest carry. Feel shot with the ${shortest.club}.`, detail: `${detail}. ${shortest.club} carries ${Math.round(shortest.carry)}.` };
+
+  // take enough club: shortest carry that still covers the number (small grace)
+  const pick = clubs.find(c => c.carry >= plays - 2) || longest;
+  const diff = pick.carry - plays;
+  const feel = diff >= 5 ? "smooth" : diff <= -3 ? "hard" : "stock";
+  const flavor = feel === "smooth" ? ", don't force it" : feel === "hard" ? " — stay through it" : "";
+  const shots = pick.count ? ` (${pick.count} shots logged)` : "";
+  return {
+    line: `That's playing ${plays} — ${feel} ${pick.club}${flavor}.`,
+    detail: `${detail}. Your ${pick.club} carries ${Math.round(pick.carry)}${shots}.`
+  };
+}
+
+/* ---- Course-attack framework (scaffold — course input UI ships next update) ----
+   Profile shape Stewart will consume:
+     { name, tee, holes: [{ number, par, yards,
+         hazards: [{ type: "water"|"ob"|"bunker"|"trees", side: "left"|"right"|"long"|"short", carry: 230 }],
+         green: { depth: 28, favor: "front-left" }, notes: "" }] }
+   Next update adds the input UI (and/or reads db.courses, which already rides
+   along in the sync file). Nothing calls stewartAttack yet. */
+const COURSE_PROFILES = [];
+
+function stewartAttack(hole) {
+  const bag = stewartClubs();
+  if (!hole || !bag.length) return null;
+  if (hole.par === 3) return { shot: "tee", ...stewartCall(hole.yards) };
+  // tee club: longest club that stays short of the first hazard carry (10 yd buffer)
+  const dangers = (hole.hazards || []).map(h => h.carry).filter(c => c != null);
+  const ceiling = dangers.length ? Math.min(...dangers) - 10 : Infinity;
+  const tee = bag.filter(c => c.carry <= ceiling).pop() || bag[0];
+  // approach: lay up to the best-executing band (the "money range")
+  const money = approachModel().bands.filter(b => b.attempts >= 5).sort((a, b) => (b.execRate ?? 0) - (a.execRate ?? 0))[0];
+  return { shot: "tee", club: tee.club, layupTo: money ? money.label : null, notes: hole.notes || "" };
+}
+
+function bindStewart() {
+  const bindChips = (rowId, attr, subRowId, onPick) => {
+    document.getElementById(rowId).addEventListener("click", e => {
+      const btn = e.target.closest(`[data-${attr}]`);
+      if (!btn) return;
+      document.querySelectorAll(`#${rowId} .chip`).forEach(c => c.classList.toggle("active", c === btn));
+      onPick(btn.dataset[attr]);
+      if (subRowId) document.getElementById(subRowId).hidden = btn.dataset[attr] === "none" || btn.dataset[attr] === "flat";
+    });
+  };
+  bindChips("stewWindDir", "wind", "stewWindStr", v => { stew.wind = v; });
+  bindChips("stewWindStr", "windstr", null, v => { stew.windStr = v; });
+  bindChips("stewElevDir", "elev", "stewElevAmt", v => { stew.elev = v; });
+  bindChips("stewElevAmt", "elevamt", null, v => { stew.elevAmt = v; });
+
+  document.getElementById("goodProcess").addEventListener("click", () => {
+    const yards = parseFloat(document.getElementById("stewYards").value);
+    const out = document.getElementById("stewAnswer");
+    if (!isFinite(yards) || yards <= 0) {
+      out.hidden = false;
+      out.innerHTML = `<div class="stew-line">Need a number first, boss.</div>`;
+      return;
+    }
+    const call = stewartCall(yards);
+    out.hidden = false;
+    out.innerHTML = `<div class="stew-line">${escapeHTML(call.line)}</div>${call.detail ? `<small>${escapeHTML(call.detail)}</small>` : ""}`;
+  });
+}
+
 /* ---------------- navigation + events ---------------- */
 
 let toastTimer;
@@ -596,6 +730,11 @@ function showView(id) {
 document.addEventListener("click", e => {
   const target = e.target.closest("[data-view]");
   if (target) showView(target.dataset.view);
+  const chip = e.target.closest("[data-apprclub]");
+  if (chip) {
+    apprClubFilter = chip.dataset.apprclub;
+    renderBag(bagLadder(), approachModel());
+  }
 });
 
 document.getElementById("syncFileInput").addEventListener("change", async e => {
@@ -625,6 +764,7 @@ document.getElementById("clearLocalData").addEventListener("click", () => {
   toast("Cached copy cleared");
 });
 
+bindStewart();
 render();
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

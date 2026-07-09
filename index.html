@@ -17,7 +17,7 @@
 
   <header class="app-header">
     <div class="brand">
-      <p class="eyebrow">POSTCALLGOLF</p>
+      <p class="eyebrow">CADDIE</p>
       <h1>Fairway Log</h1>
     </div>
     <button class="hcp-chip" id="hcpChip" data-view="syncView" title="Sync status">
@@ -63,7 +63,7 @@
           <button class="jump" data-view="bagView"><span>▚</span><strong>The Bag</strong><small>Yardages &amp; approach</small></button>
           <button class="jump" data-view="greensView"><span>◎</span><strong>Greens</strong><small>Putting ladder</small></button>
           <button class="jump" data-view="roundsView"><span>⑱</span><strong>Rounds</strong><small>Trends &amp; cards</small></button>
-          <button class="jump" data-view="syncView"><span>↻</span><strong>Sync</strong><small>Load latest</small></button>
+          <button class="jump" data-view="stewartView"><span>✦</span><strong>Stewart</strong><small>Your caddie · beta</small></button>
         </div>
       </div>
     </section>
@@ -105,6 +105,55 @@
       <div id="roundsList"></div>
     </section>
 
+    <!-- STEWART -->
+    <section class="view" id="stewartView">
+      <div class="view-title">
+        <button class="back" data-view="homeView">‹</button>
+        <div><p class="eyebrow">CADDIE · BETA</p><h2>Stewart</h2></div>
+      </div>
+
+      <section class="panel stewart-card">
+        <p class="stew-hello">Give me a number, boss.</p>
+
+        <p class="stew-label">Yardage</p>
+        <input id="stewYards" class="stew-input" type="number" inputmode="numeric" min="20" max="360" placeholder="158">
+
+        <p class="stew-label">Wind</p>
+        <div class="chip-row" id="stewWindDir">
+          <button class="chip active" data-wind="none">No wind</button>
+          <button class="chip" data-wind="into">Into</button>
+          <button class="chip" data-wind="down">Down</button>
+          <button class="chip" data-wind="cross">Cross</button>
+        </div>
+        <div class="chip-row sub" id="stewWindStr" hidden>
+          <button class="chip active" data-windstr="light">Light</button>
+          <button class="chip" data-windstr="medium">Medium</button>
+          <button class="chip" data-windstr="strong">Strong</button>
+        </div>
+
+        <p class="stew-label">Elevation</p>
+        <div class="chip-row" id="stewElevDir">
+          <button class="chip active" data-elev="flat">Flat</button>
+          <button class="chip" data-elev="up">Uphill</button>
+          <button class="chip" data-elev="down">Downhill</button>
+        </div>
+        <div class="chip-row sub" id="stewElevAmt" hidden>
+          <button class="chip active" data-elevamt="slight">Slight</button>
+          <button class="chip" data-elevamt="moderate">Moderate</button>
+          <button class="chip" data-elevamt="big">Big</button>
+        </div>
+
+        <button class="primary stew-go" id="goodProcess">Good Process</button>
+
+        <div class="stew-answer" id="stewAnswer" hidden></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><p class="eyebrow">COURSE PLAYBOOKS</p><span class="freshness">NEXT UPDATE</span></div>
+        <p class="muted">Stewart's learning your courses next. Load a course once and he'll call the attack hole-by-hole — tee club, layup number, and where the miss lives. The framework's already under the hood.</p>
+      </section>
+    </section>
+
     <!-- SYNC -->
     <section class="view" id="syncView">
       <div class="view-title">
@@ -140,6 +189,7 @@
     <button data-view="bagView"><span>▚</span>Bag</button>
     <button data-view="greensView"><span>◎</span>Greens</button>
     <button data-view="roundsView"><span>⑱</span>Rounds</button>
+    <button data-view="stewartView"><span>✦</span>Stewart</button>
     <button data-view="syncView"><span>↻</span>Sync</button>
   </nav>
 
