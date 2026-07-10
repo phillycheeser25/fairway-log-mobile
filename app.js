@@ -393,7 +393,7 @@ function render() {
     ? `Loaded ${totalRecords()} records · ${new Date(imported).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`
     : "No file loaded on this device yet.";
 
-  if (!has) { renderCounts(); return; }
+  if (!has) { renderCounts(); renderPlaybooks(); return; }
 
   const ladder = puttingLadder();
   const bag = bagLadder();
@@ -407,6 +407,7 @@ function render() {
   renderGreens(ladder);
   renderRounds(rs);
   renderCounts();
+  renderPlaybooks();
 }
 
 function renderPlan(rows) {
@@ -609,7 +610,7 @@ function renderCounts() {
   document.getElementById("countsBody").innerHTML = cells.map(([l, v]) => `<div class="count-cell"><b>${v}</b><span>${l}</span></div>`).join("");
 }
 
-/* ---------------- Stewart (caddie · beta) ---------------- */
+/* ---------------- Caddie (club calls · beta) ---------------- */
 
 /* plays-like adjustments: wind as % of the shot, elevation in yards */
 const WIND_PCT = {
@@ -626,6 +627,17 @@ const stew = { wind: "none", windStr: "light", elev: "flat", elevAmt: "slight" }
 
 function stewartClubs() {
   return bagLadder().filter(r => r.carry != null).sort((a, b) => a.carry - b.carry);
+}
+
+/* closest carry to the plays-like number — yardages read to the middle of the
+   green, so a few short beats forcing a club that's 20 long. Ties go to the
+   longer club. */
+function pickClosest(clubs, plays) {
+  let pick = null;
+  for (const c of clubs) {
+    if (pick == null || Math.abs(c.carry - plays) <= Math.abs(pick.carry - plays)) pick = c;
+  }
+  return pick;
 }
 
 function stewartCall(yards) {
@@ -648,39 +660,150 @@ function stewartCall(yards) {
   if (plays < shortest.carry - 12)
     return { line: `That's playing ${plays} — inside your shortest carry. Feel shot with the ${shortest.club}.`, detail: `${detail}. ${shortest.club} carries ${Math.round(shortest.carry)}.` };
 
-  // take enough club: shortest carry that still covers the number (small grace)
-  const pick = clubs.find(c => c.carry >= plays - 2) || longest;
-  const diff = pick.carry - plays;
-  const feel = diff >= 5 ? "smooth" : diff <= -3 ? "hard" : "stock";
+  const pick = pickClosest(clubs, plays);
+  const diff = Math.round(pick.carry - plays);
+  const feel = diff >= 5 ? "smooth" : diff <= -5 ? "hard" : "stock";
   const flavor = feel === "smooth" ? ", don't force it" : feel === "hard" ? " — stay through it" : "";
   const shots = pick.count ? ` (${pick.count} shots logged)` : "";
+
+  // between clubs? name the other look like a caddie would
+  const idx = clubs.indexOf(pick);
+  const alt = diff > 0 ? clubs[idx - 1] : diff < 0 ? clubs[idx + 1] : null;
+  const altNote = (Math.abs(diff) >= 5 && alt && Math.abs(alt.carry - plays) <= 18)
+    ? ` Other look: ${diff > 0 ? "hard" : "smooth"} ${alt.club} (${Math.round(alt.carry)}).`
+    : "";
+
   return {
     line: `That's playing ${plays} — ${feel} ${pick.club}${flavor}.`,
-    detail: `${detail}. Your ${pick.club} carries ${Math.round(pick.carry)}${shots}.`
+    detail: `${detail}. Your ${pick.club} carries ${Math.round(pick.carry)}${shots}.${altNote}`
   };
 }
 
-/* ---- Course-attack framework (scaffold — course input UI ships next update) ----
-   Profile shape Stewart will consume:
-     { name, tee, holes: [{ number, par, yards,
-         hazards: [{ type: "water"|"ob"|"bunker"|"trees", side: "left"|"right"|"long"|"short", carry: 230 }],
-         green: { depth: 28, favor: "front-left" }, notes: "" }] }
-   Next update adds the input UI (and/or reads db.courses, which already rides
-   along in the sync file). Nothing calls stewartAttack yet. */
-const COURSE_PROFILES = [];
+/* ---------------- course playbooks ---------------- */
 
-function stewartAttack(hole) {
-  const bag = stewartClubs();
-  if (!hole || !bag.length) return null;
-  if (hole.par === 3) return { shot: "tee", ...stewartCall(hole.yards) };
-  // tee club: longest club that stays short of the first hazard carry (10 yd buffer)
+/* Hole shape: { n, par, yds, hcp, hazards: [{type, side, carry}], notes }
+   Yardages to the middle of the green. Hazard carries (when known) cap the
+   tee club: longest club that stays 10 short of the first trouble. */
+const COURSE_PROFILES = [
+  {
+    id: "frog-hollow",
+    name: "Frog Hollow",
+    location: "Middletown, DE",
+    tee: "White", rating: 70.0, slope: 128, par: 71, yards: 6145,
+    notes: "Bunkers everywhere; native grass = lateral hazard; houses OB right on several. Big bent greens with break — middle of green is a good miss all day.",
+    holes: [
+      { n: 1,  par: 4, yds: 352, hcp: 8 },
+      { n: 2,  par: 5, yds: 480, hcp: 6 },
+      { n: 3,  par: 3, yds: 145, hcp: 16 },
+      { n: 4,  par: 4, yds: 405, hcp: 2 },
+      { n: 5,  par: 5, yds: 470, hcp: 10 },
+      { n: 6,  par: 3, yds: 180, hcp: 12 },
+      { n: 7,  par: 4, yds: 357, hcp: 4 },
+      { n: 8,  par: 3, yds: 135, hcp: 18 },
+      { n: 9,  par: 4, yds: 350, hcp: 14 },
+      { n: 10, par: 4, yds: 370, hcp: 7 },
+      { n: 11, par: 5, yds: 514, hcp: 13 },
+      { n: 12, par: 4, yds: 360, hcp: 11 },
+      { n: 13, par: 4, yds: 330, hcp: 9 },
+      { n: 14, par: 3, yds: 155, hcp: 15 },
+      { n: 15, par: 4, yds: 417, hcp: 3 },
+      { n: 16, par: 3, yds: 186, hcp: 17 },
+      { n: 17, par: 4, yds: 409, hcp: 5 },
+      { n: 18, par: 5, yds: 530, hcp: 1 }
+    ]
+  }
+];
+
+function moneyBand() {
+  const b = approachModel().bands.filter(x => x.attempts >= 5).slice().sort((a, c) => (c.execRate ?? 0) - (a.execRate ?? 0))[0];
+  if (!b) return { label: null, center: 100 };
+  const m = b.label.match(/(\d+)[–-](\d+)/);
+  const center = m ? Math.round((+m[1] + +m[2]) / 2) : (b.label.startsWith("<") ? 50 : 185);
+  return { label: b.label, center };
+}
+
+function teeDist(club) { return club.total ?? club.carry; }
+
+function planHole(hole, clubs, money) {
+  if (hole.par === 3) {
+    const pick = pickClosest(clubs, hole.yds);
+    return pick ? `${pick.club} — middle of the green` : "—";
+  }
+
+  // cap the tee club below the first hazard carry, if we know one
   const dangers = (hole.hazards || []).map(h => h.carry).filter(c => c != null);
   const ceiling = dangers.length ? Math.min(...dangers) - 10 : Infinity;
-  const tee = bag.filter(c => c.carry <= ceiling).pop() || bag[0];
-  // approach: lay up to the best-executing band (the "money range")
-  const money = approachModel().bands.filter(b => b.attempts >= 5).sort((a, b) => (b.execRate ?? 0) - (a.execRate ?? 0))[0];
-  return { shot: "tee", club: tee.club, layupTo: money ? money.label : null, notes: hole.notes || "" };
+  const teeable = clubs.filter(c => teeDist(c) <= ceiling);
+  const driver = (teeable.length ? teeable : clubs)[Math.max(0, (teeable.length ? teeable : clubs).length - 1)];
+
+  if (hole.par === 4) {
+    const leave = Math.round(hole.yds - teeDist(driver));
+    // short hole: club down to leave the money number instead of an awkward pitch
+    if (leave < 45) {
+      let bestTee = driver, bestGap = Math.abs(leave - money.center);
+      for (const c of (teeable.length ? teeable : clubs)) {
+        const l = hole.yds - teeDist(c);
+        if (l < 40) continue;
+        if (Math.abs(l - money.center) < bestGap) { bestGap = Math.abs(l - money.center); bestTee = c; }
+      }
+      const l = Math.round(hole.yds - teeDist(bestTee));
+      const app = pickClosest(clubs, l);
+      return `${bestTee.club} off the tee → ${l} in${app ? ` (${app.club})` : ""}`;
+    }
+    const app = pickClosest(clubs, leave);
+    return `${driver.club} → ${leave} in${app ? ` (${app.club})` : ""}`;
+  }
+
+  // par 5: tee ball, then lay up to the money number
+  const rem = Math.round(hole.yds - teeDist(driver));
+  const layTarget = rem - money.center;
+  const lay = layTarget >= 40 ? pickClosest(clubs, layTarget) : null;
+  if (!lay) {
+    const app = pickClosest(clubs, rem);
+    return `${driver.club} → ${rem} in${app ? ` (${app.club})` : ""}`;
+  }
+  const leaves = Math.round(rem - lay.carry);
+  const app = pickClosest(clubs, leaves);
+  return `${driver.club} · ${lay.club} to ${leaves}${app ? ` (${app.club} in)` : ""}`;
 }
+
+function courseHandicap(course) {
+  const hcp = num(db.golfer.handicapIndex) ?? 13.5;
+  return Math.round(hcp * course.slope / 113 + (course.rating - course.par));
+}
+
+function renderPlaybooks() {
+  const el = document.getElementById("playbookBody");
+  const meta = document.getElementById("playbookMeta");
+  if (!el) return;
+  const clubs = stewartClubs();
+  const course = COURSE_PROFILES[0];
+  if (!clubs.length) {
+    if (meta) meta.textContent = "";
+    el.innerHTML = `<p class="muted">Load your sync file and the attack gets called hole-by-hole.</p>`;
+    return;
+  }
+  const money = moneyBand();
+  const ch = courseHandicap(course);
+  if (meta) meta.textContent = `${course.tee.toUpperCase()} · ${course.yards} YD · PAR ${course.par}`;
+
+  const rows = course.holes.map(h => {
+    const stroke = h.hcp <= ch;
+    const call = planHole(h, clubs, money);
+    return `<div class="ladder-row" style="grid-template-columns:2.6rem 1fr auto">
+      <div><span class="club-name">${h.n}</span><span class="club-src">Par ${h.par}</span></div>
+      <div><span class="club-name" style="font-weight:500">${escapeHTML(call)}</span><span class="club-src">${h.yds} yd · hcp ${h.hcp}</span></div>
+      <div>${stroke ? `<span class="tag">stroke</span>` : ""}</div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <p class="muted" style="margin-top:0"><b>${escapeHTML(course.name)}</b> · ${escapeHTML(course.location)} — you play off <b>${ch}</b> here, so net par is a bogey on the <b>stroke</b> holes below. ${money.label ? `Lay-ups aim for your money number, <b>${money.center}</b> (${money.label}).` : "Log approach data to sharpen the lay-up numbers."}</p>
+    ${course.notes ? `<p class="muted">${escapeHTML(course.notes)}</p>` : ""}
+    <div class="ladder">${rows}</div>`;
+}
+
+/* ---------------- Caddie bindings ---------------- */
 
 function bindStewart() {
   const bindChips = (rowId, attr, subRowId, onPick) => {

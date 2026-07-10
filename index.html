@@ -63,7 +63,7 @@
           <button class="jump" data-view="bagView"><span>▚</span><strong>The Bag</strong><small>Yardages &amp; approach</small></button>
           <button class="jump" data-view="greensView"><span>◎</span><strong>Greens</strong><small>Putting ladder</small></button>
           <button class="jump" data-view="roundsView"><span>⑱</span><strong>Rounds</strong><small>Trends &amp; cards</small></button>
-          <button class="jump" data-view="stewartView"><span>✦</span><strong>Stewart</strong><small>Your caddie · beta</small></button>
+          <button class="jump" data-view="stewartView"><span>✦</span><strong>Caddie</strong><small>Club calls &amp; playbooks</small></button>
         </div>
       </div>
     </section>
@@ -105,11 +105,11 @@
       <div id="roundsList"></div>
     </section>
 
-    <!-- STEWART -->
+    <!-- CADDIE -->
     <section class="view" id="stewartView">
       <div class="view-title">
         <button class="back" data-view="homeView">‹</button>
-        <div><p class="eyebrow">CADDIE · BETA</p><h2>Stewart</h2></div>
+        <div><p class="eyebrow">BETA</p><h2>Caddie</h2></div>
       </div>
 
       <section class="panel stewart-card">
@@ -148,9 +148,9 @@
         <div class="stew-answer" id="stewAnswer" hidden></div>
       </section>
 
-      <section class="panel">
-        <div class="panel-head"><p class="eyebrow">COURSE PLAYBOOKS</p><span class="freshness">NEXT UPDATE</span></div>
-        <p class="muted">Stewart's learning your courses next. Load a course once and he'll call the attack hole-by-hole — tee club, layup number, and where the miss lives. The framework's already under the hood.</p>
+      <section class="panel" id="playbookPanel">
+        <div class="panel-head"><p class="eyebrow">COURSE PLAYBOOKS</p><span class="freshness" id="playbookMeta"></span></div>
+        <div id="playbookBody"><p class="muted">Load your sync file and the attack gets called hole-by-hole.</p></div>
       </section>
     </section>
 
@@ -189,7 +189,7 @@
     <button data-view="bagView"><span>▚</span>Bag</button>
     <button data-view="greensView"><span>◎</span>Greens</button>
     <button data-view="roundsView"><span>⑱</span>Rounds</button>
-    <button data-view="stewartView"><span>✦</span>Stewart</button>
+    <button data-view="stewartView"><span>✦</span>Caddie</button>
     <button data-view="syncView"><span>↻</span>Sync</button>
   </nav>
 
