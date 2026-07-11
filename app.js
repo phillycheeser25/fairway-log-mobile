@@ -691,25 +691,26 @@ const COURSE_PROFILES = [
     location: "Middletown, DE",
     tee: "White", rating: 70.0, slope: 128, par: 71, yards: 6145,
     notes: "Bunkers everywhere; native grass = lateral hazard; houses OB right on several. Big bent greens with break — middle of green is a good miss all day.",
+    source: "Monte Carlo · your 157 measured shots · hazards from aerials · 2026-07-10",
     holes: [
-      { n: 1,  par: 4, yds: 352, hcp: 8 },
-      { n: 2,  par: 5, yds: 480, hcp: 6 },
-      { n: 3,  par: 3, yds: 145, hcp: 16 },
-      { n: 4,  par: 4, yds: 405, hcp: 2 },
-      { n: 5,  par: 5, yds: 470, hcp: 10 },
-      { n: 6,  par: 3, yds: 180, hcp: 12 },
-      { n: 7,  par: 4, yds: 357, hcp: 4 },
-      { n: 8,  par: 3, yds: 135, hcp: 18 },
-      { n: 9,  par: 4, yds: 350, hcp: 14 },
-      { n: 10, par: 4, yds: 370, hcp: 7 },
-      { n: 11, par: 5, yds: 514, hcp: 13 },
-      { n: 12, par: 4, yds: 360, hcp: 11 },
-      { n: 13, par: 4, yds: 330, hcp: 9 },
-      { n: 14, par: 3, yds: 155, hcp: 15 },
-      { n: 15, par: 4, yds: 417, hcp: 3 },
-      { n: 16, par: 3, yds: 186, hcp: 17 },
-      { n: 17, par: 4, yds: 409, hcp: 5 },
-      { n: 18, par: 5, yds: 530, hcp: 1 }
+      { n: 1,  par: 4, yds: 352, hcp: 8,  call: "8i → 8i in",              why: "Bunkers right live 212–252 carry — exactly your 5i ball. 8i stops short of everything." },
+      { n: 2,  par: 5, yds: 480, hcp: 6,  call: "8i · 8i · 52° from 109",  why: "Forest right the whole way; three 8i-shaped shots never touch it." },
+      { n: 3,  par: 3, yds: 145, hcp: 16, call: "8i, smooth",              why: "Waste needs 112 carry; your worst 8i strike still clears." },
+      { n: 4,  par: 4, yds: 405, hcp: 2,  call: "4i → 8i in",              why: "OB left ends at 220, bunkers right 175–215 — the 4i flies past both windows." },
+      { n: 5,  par: 5, yds: 470, hcp: 10, call: "8i · 8i · 52° from 109",  why: "Bunkers left at 200–230 carry eat the 5i. Lay to your number." },
+      { n: 6,  par: 3, yds: 180, hcp: 12, call: "4i — carry it",           why: "Water needs 168. 8i is a coin flip; 4i clears 75%. Bail-out is right." },
+      { n: 7,  par: 4, yds: 357, hcp: 4,  call: "4i over the pond, left",  why: "Water owns 108–182 carry on the direct line — the 8i lands in it. Fly it." },
+      { n: 8,  par: 3, yds: 135, hcp: 18, call: "8i or 9i, easy",          why: "8i through PW all score the same. Take more club, never short-left." },
+      { n: 9,  par: 4, yds: 350, hcp: 14, call: "8i → 8i in",              why: "OB right is tight 120–270 carry. Two 8-irons skip the whole window." },
+      { n: 10, par: 4, yds: 370, hcp: 7,  call: "5i → wedge in",           why: "Bunker right 190–210; water left of the green — be close, hold a wedge." },
+      { n: 11, par: 5, yds: 514, hcp: 13, call: "8i · 8i right · 52°",     why: "Tee pond only needs 128. Real danger: basins left 262–366 on the second." },
+      { n: 12, par: 4, yds: 360, hcp: 11, call: "8i → 8i in",              why: "OB both sides (road left). 8i saves 0.32 strokes over 5i here." },
+      { n: 13, par: 4, yds: 330, hcp: 9,  call: "8i → wedge, favor left",  why: "Water right starts 178 carry; 8i lands 173. Long-left is dry, right is wet." },
+      { n: 14, par: 3, yds: 155, hcp: 15, call: "8i, aim long",            why: "Water carry 143: 9i is wet 20% of the time, 8i 5%. Back fringe is a win." },
+      { n: 15, par: 4, yds: 417, hcp: 3,  call: "8i · 8i · wedge",         why: "OB both sides on the longest par 4. Three-shot hole — 5 is a good score." },
+      { n: 16, par: 3, yds: 186, hcp: 17, call: "8i, front edge OK",       why: "Short is open; beats chasing 186 with the 4i. Bunkers pinch at the green." },
+      { n: 17, par: 4, yds: 409, hcp: 5,  call: "5i → 8i in",              why: "Open left, OB right only — the rare hole where the longer club pays." },
+      { n: 18, par: 5, yds: 530, hcp: 1,  call: "8i · 8i · 8i · 52°",      why: "Road OB right ~18 yd off the line for 530 yards. The 4i costs 0.61 strokes." }
     ]
   }
 ];
@@ -789,10 +790,11 @@ function renderPlaybooks() {
 
   const rows = course.holes.map(h => {
     const stroke = h.hcp <= ch;
-    const call = planHole(h, clubs, money);
+    const call = h.call || planHole(h, clubs, money);
+    const why = h.why ? `<span class="club-src">${escapeHTML(h.why)}</span>` : "";
     return `<div class="ladder-row" style="grid-template-columns:2.6rem 1fr auto">
       <div><span class="club-name">${h.n}</span><span class="club-src">Par ${h.par}</span></div>
-      <div><span class="club-name" style="font-weight:500">${escapeHTML(call)}</span><span class="club-src">${h.yds} yd · hcp ${h.hcp}</span></div>
+      <div><span class="club-name" style="font-weight:500">${escapeHTML(call)}</span><span class="club-src">${h.yds} yd · hcp ${h.hcp}</span>${why}</div>
       <div>${stroke ? `<span class="tag">stroke</span>` : ""}</div>
     </div>`;
   }).join("");
@@ -800,6 +802,7 @@ function renderPlaybooks() {
   el.innerHTML = `
     <p class="muted" style="margin-top:0"><b>${escapeHTML(course.name)}</b> · ${escapeHTML(course.location)} — you play off <b>${ch}</b> here, so net par is a bogey on the <b>stroke</b> holes below. ${money.label ? `Lay-ups aim for your money number, <b>${money.center}</b> (${money.label}).` : "Log approach data to sharpen the lay-up numbers."}</p>
     ${course.notes ? `<p class="muted">${escapeHTML(course.notes)}</p>` : ""}
+    ${course.source ? `<p class="muted" style="font-size:0.72rem;opacity:0.75">${escapeHTML(course.source)}</p>` : ""}
     <div class="ladder">${rows}</div>`;
 }
 
